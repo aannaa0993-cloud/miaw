@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giftie 🎁 - Kado Virtual</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root { --bg: #FFF5F7; --card: #FFFFFF; --pink: #FF85A1; --text: #4A3E3D; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: var(--bg); color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .box { width: 100%; max-width: 420px; background: var(--card); border-radius: 20px; padding: 24px; box-shadow: 0 10px 25px rgba(255,133,161,0.15); border: 2px solid #FFE5EC; }
+        h1 { font-size: 22px; color: var(--pink); text-align: center; margin-bottom: 4px; }
+        p.sub { font-size: 12px; color: #8C7A7B; text-align: center; margin-bottom: 20px; }
+        .group { margin-bottom: 14px; }
+        label { display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px; }
+        input, textarea, select { width: 100%; padding: 10px 12px; border: 1.5px solid #FFE5EC; border-radius: 10px; font-size: 13px; outline: none; background: #FFF9FA; }
+        input:focus, textarea:focus, select:focus { border-color: var(--pink); background: #FFF; }
+        .btn { width: 100%; padding: 12px; background: var(--pink); color: #FFF; border: none; border-radius: 12px; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 10px; }
+        .btn:hover { background: #FF6B8B; }
+        
+        /* Modal Popup */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 10; }
+        .modal.active { display: flex; }
+        .modal-content { background: #FFF; padding: 20px; border-radius: 16px; text-align: center; width: 100%; max-width: 360px; }
+        .link-text { background: #FFF5F7; padding: 10px; border: 1px dashed var(--pink); border-radius: 8px; font-size: 11px; word-break: break-all; margin: 12px 0; max-height: 70px; overflow-y: auto; }
+        
+        /* Viewer Screen */
+        .viewer-area { text-align: center; padding: 10px 0; }
+        .gift-icon { font-size: 70px; cursor: pointer; display: inline-block; margin: 20px 0; animation: bounce 1.2s infinite; }
+        @keyframes bounce { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-10px);} }
+        .letter { display: none; background: #FFF9FA; border: 1.5px solid #FFE5EC; padding: 16px; border-radius: 12px; text-align: left; margin-top: 10px; }
+        .letter p { font-size: 13px; line-height: 1.5; white-space: pre-wrap; margin-top: 8px; }
+        .from { margin-top: 12px; text-align: right; font-weight: 700; color: var(--pink); font-size: 13px; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <!-- FORM BUILDER -->
+    <div class="box" id="builder">
+        <h1>🎁 Giftie Studio</h1>
+        <p class="sub">Buat kado virtual unik untuk orang kesayangan!</p>
+        
+        <form onsubmit="makeLink(event)">
+            <div class="group">
+                <label>Untuk Siapa?</label>
+                <input type="text" id="to" placeholder="Nama penerima" required>
+            </div>
+            <div class="group">
+                <label>Dari Siapa?</label>
+                <input type="text" id="from" placeholder="Nama pengirim" required>
+            </div>
+            <div class="group">
+                <label>Tipe Kado</label>
+                <select id="type">
+                    <option value="🎁">Kotak Kado 🎁</option>
+                    <option value="💌">Surat Cinta 💌</option>
+                    <option value="🎂">Kue Ulang Tahun 🎂</option>
+                </select>
+            </div>
+            <div class="group">
+                <label>Pesan Ucapan</label>
+                <textarea id="msg" rows="3" placeholder="Tuliskan ucapan spesial kamu di sini..." required></textarea>
+            </div>
+            <div class="group">
+                <label>Link Foto (Opsional)</label>
+                <input type="url" id="img" placeholder="https://i.ibb.co/xxx.jpg">
+            </div>
+            <div class="group">
+                <label>Link YouTube Lagu (Opsional)</label>
+                <input type="text" id="yt" placeholder="https://youtu.be/xxxxx">
+            </div>
+            <button type="submit" class="btn">✨ Buat Link Kado</button>
+        </form>
+    </div>
+
+    <!-- VIEWER KADO -->
+    <div class="box hidden" id="viewer">
+        <div class="viewer-area">
+            <h2 id="view-title" style="color:var(--pink); font-size:18px;">Ada Kado Untukmu! ✨</h2>
+            <p id="view-sub" style="font-size:12px; color:#8C7A7B; margin-top:4px;">Klik kado di bawah untuk membukanya!</p>
+            
+            <div class="gift-icon" id="icon-btn" onclick="openGift()">🎁</div>
+
+            <div class="letter" id="letter">
+                <h3 id="v-to" style="color:var(--pink); font-size:15px;"></h3>
+                <p id="v-msg"></p>
+                <img id="v-img" style="max-width:100%; border-radius:8px; margin-top:10px;" class="hidden" src="">
+                <div class="from" id="v-from"></div>
+            </div>
+
+            <button class="btn" onclick="location.href=location.pathname" style="background:#FFF0F3; color:var(--pink); margin-top:16px;">
+                ➕ Bikin Kado Sendiri
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL LINK -->
+    <div class="modal" id="modal">
+        <div class="modal-content">
+            <h3 style="color:var(--pink); font-size:16px;">🎉 Link Berhasil Dibuat!</h3>
+            <p style="font-size:12px; color:#8C7A7B; margin-top:4px;">Salin link ini & kirimkan ke dia:</p>
+            <div class="link-text" id="link-out"></div>
+            <button class="btn" onclick="copyResult()">📋 Salin Link</button>
+        </div>
+    </div>
+
+    <div id="player" style="position:fixed; top:-999px;"></div>
+
+    <script>
+        function getYTId(url) {
+            if(!url) return '';
+            const m = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/);
+            return (m && m[2].length === 11) ? m[2] : url;
+        }
+
+        function makeLink(e) {
+            e.preventDefault();
+            const d = {
+                t: document.getElementById('to').value.trim(),
+                f: document.getElementById('from').value.trim(),
+                k: document.getElementById('type').value,
+                m: document.getElementById('msg').value.trim(),
+                i: document.getElementById('img').value.trim(),
+                y: getYTId(document.getElementById('youtubeUrl')?.value || document.getElementById('yt').value.trim())
+            };
+
+            const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(d))));
+            const fullLink = window.location.origin + window.location.pathname + '#g=' + encoded;
+            
+            document.getElementById('link-out').innerText = fullLink;
+            document.getElementById('modal').classList.add('active');
+        }
+
+        function copyResult() {
+            navigator.clipboard.writeText(document.getElementById('link-out').innerText).then(() => {
+                alert('✨ Link berhasil disalin!');
+                document.getElementById('modal').classList.remove('active');
+            }).catch(() => alert('Salin teks link di dalam kotak secara manual ya!'));
+        }
+
+        window.addEventListener('load', () => {
+            const hash = window.location.hash;
+            if (hash.startsWith('#g=')) {
+                try {
+                    const data = JSON.parse(decodeURIComponent(escape(atob(hash.replace('#g=', '')))));
+                    showViewer(data);
+                } catch(e) {}
+            }
+        });
+
+        let savedData = null;
+        function showViewer(data) {
+            savedData = data;
+            document.getElementById('builder').classList.add('hidden');
+            document.getElementById('viewer').classList.remove('hidden');
+            document.getElementById('icon-btn').innerText = data.k || '🎁';
+            document.getElementById('v-to').innerText = 'Untuk: ' + data.t;
+            document.getElementById('v-msg').innerText = data.m;
+            document.getElementById('v-from').innerText = '~ Dari: ' + data.f;
+            
+            if(data.i) {
+                const img = document.getElementById('v-img');
+                img.src = data.i;
+                img.classList.remove('hidden');
+            }
+            if(data.y) {
+                document.getElementById('player').innerHTML = `<iframe width="1" height="1" src="https://www.youtube.com/embed/${data.y}?autoplay=1&loop=1" frameborder="0" allow="autoplay"></iframe>`;
+            }
+        }
+
+        function openGift() {
+            document.getElementById('icon-btn').style.display = 'none';
+            document.getElementById('view-sub').style.display = 'none';
+            document.getElementById('view-title').innerText = 'Pesan Untukmu ✨';
+            document.getElementById('letter').style.display = 'block';
+            confetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+        }
+    </script>
+</body>
+</html>
